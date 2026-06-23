@@ -1,0 +1,2535 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#2D5A3F" />
+  <title>兒童生長門診評估 ｜ 陪你長大小兒科診所</title>
+  <meta name="description" content="陪你長大小兒科診所 ─ 兒童生長門診線上評估表。請於到診前完成填寫，醫師會在看診時直接調閱。" />
+  <meta property="og:title" content="兒童生長門診評估 ｜ 陪你長大小兒科診所" />
+  <meta property="og:description" content="到診前 10–15 分鐘線上問診，醫師看診更精準。" />
+  <meta property="og:type" content="website" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Noto+Serif+TC:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/"></script>
+  <style>
+    html,body{margin:0;padding:0;background:#FBF8F1;}
+    #root{min-height:100vh;}
+    .__boot{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;font-family:'Noto Sans TC',system-ui,sans-serif;color:#6B6B5E;font-size:14px;}
+    .__boot .ring{width:42px;height:42px;border-radius:50%;border:3px solid #E2DCC8;border-top-color:#2D5A3F;animation:__spin .9s linear infinite;}
+    @keyframes __spin{to{transform:rotate(360deg);}}
+  </style>
+</head>
+<body>
+  <!-- ============================================================ -->
+  <!-- ▼ 設定區：要啟用「填完自動把 PDF 寄到診所信箱」，把下面引號內換成 Google Apps Script 的 /exec 網址。 -->
+  <!--   留空 = 維持現狀（只下載 PDF + 手動 LINE / Email）。詳見隨附的「部署與設定說明」。 -->
+  <script>
+    window.GROWTH_FORM_CONFIG = {
+      MAIL_ENDPOINT: ""
+    };
+  </script>
+  <!-- ▲ 設定區結束 -->
+  <!-- ============================================================ -->
+
+  <div id="root"><div class="__boot"><div class="ring"></div><div>載入問卷中…</div></div></div>
+  <noscript><div style="padding:24px;font-family:sans-serif;text-align:center;color:#6B6B5E;">請開啟瀏覽器的 JavaScript 後重新整理，即可填寫問卷。</div></noscript>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script>
+/* ============================================================
+   陪你長大小兒科診所 — 兒童生長門診評估表（免建置單檔版）
+   由原始模組 growth-clinic-form.jsx 轉製：移除 import、內嵌 lucide 圖示、預先編譯 JSX。
+   ============================================================ */
+const {
+  useState,
+  useEffect,
+  useRef,
+  forwardRef
+} = React;
+
+/* ===== 設定區 =====
+   要啟用「填完自動把 PDF 寄到診所信箱」：
+   1) 部署隨附的 Google Apps Script，取得 /exec 網址
+   2) 把網址貼進下面引號中（留空 = 只下載 PDF + 手動 LINE/Email，行為與現在相同）
+*/
+const MAIL_ENDPOINT = typeof window !== "undefined" && window.GROWTH_FORM_CONFIG && window.GROWTH_FORM_CONFIG.MAIL_ENDPOINT || "";
+
+/* inline lucide icons (generated from lucide-static) — replaces lucide-react */
+const IconBase = ({
+  size = 24,
+  strokeWidth = 2,
+  className = "",
+  children,
+  ...rest
+}) => React.createElement("svg", {
+  xmlns: "http://www.w3.org/2000/svg",
+  width: size,
+  height: size,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth,
+  strokeLinecap: "round",
+  strokeLinejoin: "round",
+  className,
+  ...rest
+}, children);
+const ChevronLeft = p => React.createElement(IconBase, p, React.createElement("path", {
+  "d": "m15 18-6-6 6-6",
+  "key": 0
+}));
+const ChevronRight = p => React.createElement(IconBase, p, React.createElement("path", {
+  "d": "m9 18 6-6-6-6",
+  "key": 0
+}));
+const Check = p => React.createElement(IconBase, p, React.createElement("path", {
+  "d": "M20 6 9 17l-5-5",
+  "key": 0
+}));
+const Heart = p => React.createElement(IconBase, p, React.createElement("path", {
+  "d": "M2 9.5a5.5 5.5 0 0 1 9.591-3.676.56.56 0 0 0 .818 0A5.49 5.49 0 0 1 22 9.5c0 2.29-1.5 4-3 5.5l-5.492 5.313a2 2 0 0 1-3 .019L5 15c-1.5-1.5-3-3.2-3-5.5",
+  "key": 0
+}));
+const Ruler = p => React.createElement(IconBase, p, React.createElement("path", {
+  "d": "M21.3 15.3a2.4 2.4 0 0 1 0 3.4l-2.6 2.6a2.4 2.4 0 0 1-3.4 0L2.7 8.7a2.41 2.41 0 0 1 0-3.4l2.6-2.6a2.41 2.41 0 0 1 3.4 0Z",
+  "key": 0
+}), React.createElement("path", {
+  "d": "m14.5 12.5 2-2",
+  "key": 1
+}), React.createElement("path", {
+  "d": "m11.5 9.5 2-2",
+  "key": 2
+}), React.createElement("path", {
+  "d": "m8.5 6.5 2-2",
+  "key": 3
+}), React.createElement("path", {
+  "d": "m17.5 15.5 2-2",
+  "key": 4
+}));
+const Calendar = p => React.createElement(IconBase, p, React.createElement("path", {
+  "d": "M8 2v4",
+  "key": 0
+}), React.createElement("path", {
+  "d": "M16 2v4",
+  "key": 1
+}), React.createElement("rect", {
+  "width": "18",
+  "height": "18",
+  "x": "3",
+  "y": "4",
+  "rx": "2",
+  "key": 2
+}), React.createElement("path", {
+  "d": "M3 10h18",
+  "key": 3
+}));
+const Users = p => React.createElement(IconBase, p, React.createElement("path", {
+  "d": "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2",
+  "key": 0
+}), React.createElement("path", {
+  "d": "M16 3.128a4 4 0 0 1 0 7.744",
+  "key": 1
+}), React.createElement("path", {
+  "d": "M22 21v-2a4 4 0 0 0-3-3.87",
+  "key": 2
+}), React.createElement("circle", {
+  "cx": "9",
+  "cy": "7",
+  "r": "4",
+  "key": 3
+}));
+const Baby = p => React.createElement(IconBase, p, React.createElement("path", {
+  "d": "M10 16c.5.3 1.2.5 2 .5s1.5-.2 2-.5",
+  "key": 0
+}), React.createElement("path", {
+  "d": "M15 12h.01",
+  "key": 1
+}), React.createElement("path", {
+  "d": "M19.38 6.813A9 9 0 0 1 20.8 10.2a2 2 0 0 1 0 3.6 9 9 0 0 1-17.6 0 2 2 0 0 1 0-3.6A9 9 0 0 1 12 3c2 0 3.5 1.1 3.5 2.5s-.9 2.5-2 2.5c-.8 0-1.5-.4-1.5-1",
+  "key": 2
+}), React.createElement("path", {
+  "d": "M9 12h.01",
+  "key": 3
+}));
+const Sparkles = p => React.createElement(IconBase, p, React.createElement("path", {
+  "d": "M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z",
+  "key": 0
+}), React.createElement("path", {
+  "d": "M20 2v4",
+  "key": 1
+}), React.createElement("path", {
+  "d": "M22 4h-4",
+  "key": 2
+}), React.createElement("circle", {
+  "cx": "4",
+  "cy": "20",
+  "r": "2",
+  "key": 3
+}));
+const Moon = p => React.createElement(IconBase, p, React.createElement("path", {
+  "d": "M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401",
+  "key": 0
+}));
+const Apple = p => React.createElement(IconBase, p, React.createElement("path", {
+  "d": "M12 6.528V3a1 1 0 0 1 1-1h0",
+  "key": 0
+}), React.createElement("path", {
+  "d": "M18.237 21A15 15 0 0 0 22 11a6 6 0 0 0-10-4.472A6 6 0 0 0 2 11a15.1 15.1 0 0 0 3.763 10 3 3 0 0 0 3.648.648 5.5 5.5 0 0 1 5.178 0A3 3 0 0 0 18.237 21",
+  "key": 1
+}));
+const Stethoscope = p => React.createElement(IconBase, p, React.createElement("path", {
+  "d": "M11 2v2",
+  "key": 0
+}), React.createElement("path", {
+  "d": "M5 2v2",
+  "key": 1
+}), React.createElement("path", {
+  "d": "M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1",
+  "key": 2
+}), React.createElement("path", {
+  "d": "M8 15a6 6 0 0 0 12 0v-3",
+  "key": 3
+}), React.createElement("circle", {
+  "cx": "20",
+  "cy": "10",
+  "r": "2",
+  "key": 4
+}));
+const AlertCircle = p => React.createElement(IconBase, p, React.createElement("circle", {
+  "cx": "12",
+  "cy": "12",
+  "r": "10",
+  "key": 0
+}), React.createElement("line", {
+  "x1": "12",
+  "x2": "12",
+  "y1": "8",
+  "y2": "12",
+  "key": 1
+}), React.createElement("line", {
+  "x1": "12",
+  "x2": "12.01",
+  "y1": "16",
+  "y2": "16",
+  "key": 2
+}));
+const ClipboardCheck = p => React.createElement(IconBase, p, React.createElement("rect", {
+  "width": "8",
+  "height": "4",
+  "x": "8",
+  "y": "2",
+  "rx": "1",
+  "ry": "1",
+  "key": 0
+}), React.createElement("path", {
+  "d": "M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2",
+  "key": 1
+}), React.createElement("path", {
+  "d": "m9 14 2 2 4-4",
+  "key": 2
+}));
+const MessageCircle = p => React.createElement(IconBase, p, React.createElement("path", {
+  "d": "M2.992 16.342a2 2 0 0 1 .094 1.167l-1.065 3.29a1 1 0 0 0 1.236 1.168l3.413-.998a2 2 0 0 1 1.099.092 10 10 0 1 0-4.777-4.719",
+  "key": 0
+}));
+const Upload = p => React.createElement(IconBase, p, React.createElement("path", {
+  "d": "M12 3v12",
+  "key": 0
+}), React.createElement("path", {
+  "d": "m17 8-5-5-5 5",
+  "key": 1
+}), React.createElement("path", {
+  "d": "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4",
+  "key": 2
+}));
+const ArrowRight = p => React.createElement(IconBase, p, React.createElement("path", {
+  "d": "M5 12h14",
+  "key": 0
+}), React.createElement("path", {
+  "d": "m12 5 7 7-7 7",
+  "key": 1
+}));
+const Download = p => React.createElement(IconBase, p, React.createElement("path", {
+  "d": "M12 15V3",
+  "key": 0
+}), React.createElement("path", {
+  "d": "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4",
+  "key": 1
+}), React.createElement("path", {
+  "d": "m7 10 5 5 5-5",
+  "key": 2
+}));
+const Loader2 = p => React.createElement(IconBase, p, React.createElement("path", {
+  "d": "M21 12a9 9 0 1 1-6.219-8.56",
+  "key": 0
+}));
+const FileCheck = p => React.createElement(IconBase, p, React.createElement("path", {
+  "d": "M6 22a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h8a2.4 2.4 0 0 1 1.704.706l3.588 3.588A2.4 2.4 0 0 1 20 8v12a2 2 0 0 1-2 2z",
+  "key": 0
+}), React.createElement("path", {
+  "d": "M14 2v5a1 1 0 0 0 1 1h5",
+  "key": 1
+}), React.createElement("path", {
+  "d": "m9 15 2 2 4-4",
+  "key": 2
+}));
+function GrowthClinicForm() {
+  const [step, setStep] = useState(0);
+  const [submitState, setSubmitState] = useState("idle"); // idle | generating | done | error
+  const [pdfReady, setPdfReady] = useState(false);
+  const printRef = useRef(null);
+  const [mailSent, setMailSent] = useState(false);
+  const [data, setData] = useState({
+    // 基本資料
+    childName: "",
+    birthDate: "",
+    gender: "",
+    school: "",
+    grade: "",
+    parentName: "",
+    parentRelation: "",
+    parentPhone: "",
+    // 主訴
+    visitReason: [],
+    visitReasonOther: "",
+    problemDuration: "",
+    classRanking: "",
+    growthLastYear: "",
+    currentHeight: "",
+    currentWeight: "",
+    measureDate: "",
+    // 出生史
+    pregnancyOrder: "",
+    gestationalWeeks: "",
+    birthWeight: "",
+    deliveryMethod: "",
+    cesareanReason: "",
+    birthComplications: [],
+    birthComplicationOther: "",
+    // 家族史
+    fatherHeight: "",
+    motherHeight: "",
+    fatherPubertyTime: "",
+    motherMenarche: "",
+    siblingsInfo: "",
+    familyDiseases: [],
+    familyDiseaseOther: "",
+    // 青春期
+    breastDev: "",
+    breastAge: "",
+    pubicHair: "",
+    menarcheStatus: "",
+    menarcheAge: "",
+    voiceChange: "",
+    testesChange: "",
+    beard: "",
+    bodyOdor: "",
+    acne: "",
+    recentSpurt: "",
+    // 生活作息
+    weekdayBedtime: "",
+    weekdayWake: "",
+    weekendBedtime: "",
+    sleepIssues: [],
+    exerciseFreq: "",
+    exerciseTypes: "",
+    screenTime: "",
+    // 飲食
+    appetite: "",
+    pickyEating: "",
+    pickyDetails: "",
+    dairyIntake: "",
+    breakfast: "",
+    supplements: [],
+    supplementOther: "",
+    // 病史
+    drugAllergy: "",
+    drugAllergyDetails: "",
+    chronicDisease: "",
+    chronicDetails: "",
+    brainDisease: "",
+    brainDiseaseDetails: "",
+    longTermMeds: "",
+    // 紅旗篩檢
+    redFlags: [],
+    // 過去評估
+    prevEvaluation: "",
+    prevDetails: "",
+    currentTreatment: "",
+    // 期望
+    mainConcern: "",
+    heightGoal: "",
+    treatmentAcceptance: ""
+  });
+
+  // 載入字型與 html2pdf 套件
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.href = "https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Noto+Serif+TC:wght@400;500;600;700&family=Noto+Sans+TC:wght@300;400;500;600&display=swap";
+    link.rel = "stylesheet";
+    document.head.appendChild(link);
+    if (!window.html2pdf) {
+      const script = document.createElement("script");
+      script.src = "https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js";
+      script.onload = () => setPdfReady(true);
+      script.onerror = () => setPdfReady(false);
+      document.body.appendChild(script);
+    } else {
+      setPdfReady(true);
+    }
+  }, []);
+  const update = (k, v) => setData(p => ({
+    ...p,
+    [k]: v
+  }));
+  const toggle = (k, v) => setData(p => ({
+    ...p,
+    [k]: p[k].includes(v) ? p[k].filter(x => x !== v) : [...p[k], v]
+  }));
+  const steps = [{
+    key: "welcome",
+    label: "開始",
+    icon: Heart
+  }, {
+    key: "basic",
+    label: "基本資料",
+    icon: Users
+  }, {
+    key: "reason",
+    label: "看診原因",
+    icon: MessageCircle
+  }, {
+    key: "birth",
+    label: "出生史",
+    icon: Baby
+  }, {
+    key: "family",
+    label: "家族史",
+    icon: Users
+  }, {
+    key: "growth",
+    label: "目前生長",
+    icon: Ruler
+  }, {
+    key: "puberty",
+    label: "發育狀況",
+    icon: Sparkles
+  }, {
+    key: "lifestyle",
+    label: "生活作息",
+    icon: Moon
+  }, {
+    key: "diet",
+    label: "飲食習慣",
+    icon: Apple
+  }, {
+    key: "medical",
+    label: "病史用藥",
+    icon: Stethoscope
+  }, {
+    key: "redflags",
+    label: "症狀篩檢",
+    icon: AlertCircle
+  }, {
+    key: "expectations",
+    label: "您的期望",
+    icon: ClipboardCheck
+  }, {
+    key: "summary",
+    label: "完成",
+    icon: Check
+  }];
+  const totalSteps = steps.length;
+  const progress = step / (totalSteps - 1) * 100;
+
+  // 計算 Target Height
+  const calcTargetHeight = () => {
+    const f = parseFloat(data.fatherHeight);
+    const m = parseFloat(data.motherHeight);
+    if (!f || !m) return null;
+    if (data.gender === "male") return ((f + m + 13) / 2).toFixed(1);
+    if (data.gender === "female") return ((f + m - 13) / 2).toFixed(1);
+    return null;
+  };
+
+  // 計算年齡
+  const calcAge = () => {
+    if (!data.birthDate) return null;
+    const b = new Date(data.birthDate);
+    const now = new Date();
+    let years = now.getFullYear() - b.getFullYear();
+    const m = now.getMonth() - b.getMonth();
+    if (m < 0 || m === 0 && now.getDate() < b.getDate()) years--;
+    const months = m < 0 ? m + 12 : m;
+    return {
+      years,
+      months
+    };
+  };
+
+  // BMI
+  const calcBMI = () => {
+    const h = parseFloat(data.currentHeight);
+    const w = parseFloat(data.currentWeight);
+    if (!h || !w) return null;
+    return (w / (h / 100) ** 2).toFixed(1);
+  };
+  const next = () => setStep(s => Math.min(s + 1, totalSteps - 1));
+  const prev = () => setStep(s => Math.max(s - 1, 0));
+
+  // 產生 PDF
+  const handleSubmit = async () => {
+    if (!window.html2pdf) {
+      alert("PDF 工具尚在載入中，請稍候 3 秒再試一次");
+      return;
+    }
+    if (!printRef.current) return;
+    setSubmitState("generating");
+    setMailSent(false);
+    const d = new Date();
+    const dateStr = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
+    const safeName = (data.childName || "未填姓名").replace(/[\\/:*?"<>|]/g, "");
+    const filename = `生長門診問卷_${safeName}_${dateStr}.pdf`;
+    const opt = {
+      margin: [10, 10, 10, 10],
+      filename,
+      image: {
+        type: "jpeg",
+        quality: 0.95
+      },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        letterRendering: true,
+        logging: false,
+        backgroundColor: "#FFFFFF"
+      },
+      jsPDF: {
+        unit: "mm",
+        format: "a4",
+        orientation: "portrait"
+      },
+      pagebreak: {
+        mode: ["css", "legacy"],
+        avoid: ".pdf-avoid-break"
+      }
+    };
+    try {
+      if (MAIL_ENDPOINT) {
+        // 產生一次 PDF：先讓家長下載，再把同一份寄到診所信箱
+        const pdfBlob = await window.html2pdf().set(opt).from(printRef.current).outputPdf("blob");
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        try {
+          const pdfBase64 = await new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(String(reader.result).split(",")[1] || "");
+            reader.onerror = reject;
+            reader.readAsDataURL(pdfBlob);
+          });
+          await fetch(MAIL_ENDPOINT, {
+            method: "POST",
+            mode: "no-cors",
+            headers: {
+              "Content-Type": "text/plain;charset=utf-8"
+            },
+            body: JSON.stringify({
+              filename: filename,
+              childName: data.childName || "",
+              parentName: data.parentName || "",
+              parentPhone: data.parentPhone || "",
+              pdfBase64: pdfBase64
+            })
+          });
+          setMailSent(true);
+        } catch (mailErr) {
+          console.error("自動寄送診所失敗（PDF 已下載，可改用 LINE / Email 按鈕）:", mailErr);
+        }
+      } else {
+        await window.html2pdf().set(opt).from(printRef.current).save();
+      }
+      setSubmitState("done");
+    } catch (err) {
+      console.error("PDF 產生失敗:", err);
+      setSubmitState("error");
+      setTimeout(() => setSubmitState("idle"), 3000);
+    }
+  };
+  return /*#__PURE__*/React.createElement("div", {
+    className: "min-h-screen w-full",
+    style: {
+      background: "#FBF8F1",
+      fontFamily: "'Noto Sans TC', system-ui, -apple-system, sans-serif",
+      color: "#2A2A26"
+    }
+  }, /*#__PURE__*/React.createElement("style", null, `
+        .display-font { font-family: 'Fraunces', 'Noto Serif TC', serif; font-feature-settings: "ss01"; }
+        .body-serif { font-family: 'Noto Serif TC', 'Fraunces', serif; }
+        input, select, textarea {
+          font-family: 'Noto Sans TC', system-ui, sans-serif;
+          background: #FFFFFF;
+          border: 1px solid #E2DCC8;
+          border-radius: 6px;
+          padding: 12px 14px;
+          font-size: 15px;
+          color: #2A2A26;
+          transition: all 0.15s ease;
+          width: 100%;
+        }
+        input:focus, select:focus, textarea:focus {
+          outline: none;
+          border-color: #2D5A3F;
+          box-shadow: 0 0 0 3px rgba(45,90,63,0.12);
+        }
+        input::placeholder, textarea::placeholder { color: #B5AE9A; }
+        .check-card {
+          display: flex; align-items: flex-start; gap: 10px;
+          padding: 12px 14px; background: #FFFFFF;
+          border: 1px solid #E2DCC8; border-radius: 6px;
+          cursor: pointer; transition: all 0.15s ease;
+          font-size: 14.5px;
+        }
+        .check-card:hover { border-color: #2D5A3F; background: #FAFCFA; }
+        .check-card.active {
+          border-color: #2D5A3F;
+          background: #F0F6F2;
+          box-shadow: 0 0 0 1px #2D5A3F inset;
+        }
+        .check-card input { width: auto; padding: 0; margin-top: 3px; accent-color: #2D5A3F; }
+        .step-pill { transition: all 0.3s cubic-bezier(0.4,0,0.2,1); }
+        @keyframes fadeUp { from { opacity:0; transform: translateY(8px);} to {opacity:1; transform:none;}}
+        .fade-in { animation: fadeUp 0.4s ease both; }
+        .ruler-mark { background: linear-gradient(to right, #2D5A3F 0%, #2D5A3F var(--p), #E2DCC8 var(--p), #E2DCC8 100%); }
+      `), /*#__PURE__*/React.createElement("div", {
+    className: "sticky top-0 z-30 backdrop-blur-md",
+    style: {
+      background: "rgba(251,248,241,0.92)",
+      borderBottom: "1px solid #E8E2D5"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "max-w-3xl mx-auto px-5 sm:px-8 py-5"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center justify-between mb-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-center gap-3"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "w-9 h-9 rounded-full flex items-center justify-center",
+    style: {
+      background: "#2D5A3F"
+    }
+  }, /*#__PURE__*/React.createElement(Ruler, {
+    className: "w-4 h-4 text-white"
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px] tracking-[0.18em] uppercase",
+    style: {
+      color: "#6B6B5E"
+    }
+  }, "陪你長大小兒科診所"), /*#__PURE__*/React.createElement("div", {
+    className: "display-font text-[17px] font-semibold leading-tight",
+    style: {
+      color: "#2A2A26"
+    }
+  }, "兒童生長門診評估表"))), /*#__PURE__*/React.createElement("div", {
+    className: "hidden sm:block text-right"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px] tracking-wider",
+    style: {
+      color: "#6B6B5E"
+    }
+  }, "STEP"), /*#__PURE__*/React.createElement("div", {
+    className: "display-font text-[15px] font-semibold"
+  }, String(step + 1).padStart(2, "0"), " ", /*#__PURE__*/React.createElement("span", {
+    style: {
+      color: "#B5AE9A"
+    }
+  }, "/ ", String(totalSteps).padStart(2, "0"))))), /*#__PURE__*/React.createElement("div", {
+    className: "relative"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "h-[3px] rounded-full overflow-hidden",
+    style: {
+      background: "#E8E2D5"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "h-full transition-all duration-500",
+    style: {
+      width: `${progress}%`,
+      background: "#2D5A3F"
+    }
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "flex justify-between mt-1.5"
+  }, Array.from({
+    length: 13
+  }).map((_, i) => /*#__PURE__*/React.createElement("div", {
+    key: i,
+    className: "w-px",
+    style: {
+      height: i % 2 === 0 ? "6px" : "3px",
+      background: i / 12 * 100 <= progress ? "#2D5A3F" : "#D4CDB8"
+    }
+  })))))), /*#__PURE__*/React.createElement("main", {
+    className: "max-w-3xl mx-auto px-5 sm:px-8 py-10 sm:py-14 pb-32"
+  }, /*#__PURE__*/React.createElement("div", {
+    key: step,
+    className: "fade-in"
+  }, step === 0 && /*#__PURE__*/React.createElement(Welcome, {
+    data: data,
+    update: update,
+    next: next
+  }), step === 1 && /*#__PURE__*/React.createElement(BasicInfo, {
+    data: data,
+    update: update
+  }), step === 2 && /*#__PURE__*/React.createElement(VisitReason, {
+    data: data,
+    update: update,
+    toggle: toggle
+  }), step === 3 && /*#__PURE__*/React.createElement(BirthHistory, {
+    data: data,
+    update: update,
+    toggle: toggle
+  }), step === 4 && /*#__PURE__*/React.createElement(FamilyHistory, {
+    data: data,
+    update: update,
+    toggle: toggle,
+    target: calcTargetHeight()
+  }), step === 5 && /*#__PURE__*/React.createElement(CurrentGrowth, {
+    data: data,
+    update: update,
+    bmi: calcBMI(),
+    age: calcAge()
+  }), step === 6 && /*#__PURE__*/React.createElement(Puberty, {
+    data: data,
+    update: update
+  }), step === 7 && /*#__PURE__*/React.createElement(Lifestyle, {
+    data: data,
+    update: update,
+    toggle: toggle
+  }), step === 8 && /*#__PURE__*/React.createElement(Diet, {
+    data: data,
+    update: update,
+    toggle: toggle
+  }), step === 9 && /*#__PURE__*/React.createElement(Medical, {
+    data: data,
+    update: update
+  }), step === 10 && /*#__PURE__*/React.createElement(RedFlags, {
+    data: data,
+    toggle: toggle
+  }), step === 11 && /*#__PURE__*/React.createElement(Expectations, {
+    data: data,
+    update: update
+  }), step === 12 && /*#__PURE__*/React.createElement(Summary, {
+    data: data,
+    target: calcTargetHeight(),
+    bmi: calcBMI(),
+    age: calcAge(),
+    setStep: setStep,
+    onSubmit: handleSubmit,
+    submitState: submitState,
+    pdfReady: pdfReady,
+    mailSent: mailSent
+  }))), step > 0 && step < 12 && /*#__PURE__*/React.createElement("div", {
+    className: "fixed bottom-0 left-0 right-0 z-30 backdrop-blur-md",
+    style: {
+      background: "rgba(251,248,241,0.94)",
+      borderTop: "1px solid #E8E2D5"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "max-w-3xl mx-auto px-5 sm:px-8 py-4 flex items-center justify-between gap-3"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: prev,
+    className: "flex items-center gap-1.5 px-4 py-2.5 rounded-full text-sm font-medium transition-all hover:bg-white",
+    style: {
+      color: "#6B6B5E"
+    }
+  }, /*#__PURE__*/React.createElement(ChevronLeft, {
+    className: "w-4 h-4"
+  }), " 上一步"), /*#__PURE__*/React.createElement("div", {
+    className: "hidden sm:flex items-center gap-1.5 text-[12px]",
+    style: {
+      color: "#8A8473"
+    }
+  }, steps[step].label), /*#__PURE__*/React.createElement("button", {
+    onClick: next,
+    className: "flex items-center gap-1.5 px-6 py-2.5 rounded-full text-sm font-medium text-white transition-all hover:opacity-90",
+    style: {
+      background: "#2D5A3F"
+    }
+  }, step === 11 ? "完成填寫" : "下一步", " ", /*#__PURE__*/React.createElement(ChevronRight, {
+    className: "w-4 h-4"
+  })))), /*#__PURE__*/React.createElement("div", {
+    style: {
+      position: "fixed",
+      left: "-10000px",
+      top: 0,
+      width: "210mm",
+      pointerEvents: "none"
+    },
+    "aria-hidden": true
+  }, /*#__PURE__*/React.createElement(PrintableSummary, {
+    ref: printRef,
+    data: data,
+    target: calcTargetHeight(),
+    bmi: calcBMI(),
+    age: calcAge()
+  })));
+}
+
+/* ───────────────── 共用元件 ───────────────── */
+const SectionHeader = ({
+  kicker,
+  title,
+  desc,
+  icon: Icon
+}) => /*#__PURE__*/React.createElement("header", {
+  className: "mb-8 sm:mb-10"
+}, Icon && /*#__PURE__*/React.createElement("div", {
+  className: "inline-flex items-center justify-center w-11 h-11 rounded-full mb-5",
+  style: {
+    background: "#F0F6F2",
+    border: "1px solid #D6E3D9"
+  }
+}, /*#__PURE__*/React.createElement(Icon, {
+  className: "w-5 h-5",
+  style: {
+    color: "#2D5A3F"
+  }
+})), /*#__PURE__*/React.createElement("div", {
+  className: "text-[11px] tracking-[0.22em] uppercase mb-2",
+  style: {
+    color: "#C97B4A"
+  }
+}, kicker), /*#__PURE__*/React.createElement("h2", {
+  className: "display-font text-[28px] sm:text-[34px] font-semibold leading-tight mb-2.5",
+  style: {
+    color: "#1F2520"
+  }
+}, title), desc && /*#__PURE__*/React.createElement("p", {
+  className: "text-[14.5px] leading-relaxed",
+  style: {
+    color: "#6B6B5E"
+  }
+}, desc));
+const Field = ({
+  label,
+  hint,
+  required,
+  children,
+  half
+}) => /*#__PURE__*/React.createElement("div", {
+  className: half ? "" : "col-span-2"
+}, /*#__PURE__*/React.createElement("label", {
+  className: "block mb-2"
+}, /*#__PURE__*/React.createElement("span", {
+  className: "text-[13.5px] font-medium",
+  style: {
+    color: "#2A2A26"
+  }
+}, label), required && /*#__PURE__*/React.createElement("span", {
+  className: "ml-1",
+  style: {
+    color: "#C97B4A"
+  }
+}, "*"), hint && /*#__PURE__*/React.createElement("span", {
+  className: "block text-[12px] mt-0.5",
+  style: {
+    color: "#8A8473"
+  }
+}, hint)), children);
+const Radio = ({
+  name,
+  value,
+  current,
+  onChange,
+  label
+}) => /*#__PURE__*/React.createElement("label", {
+  className: `check-card ${current === value ? "active" : ""}`
+}, /*#__PURE__*/React.createElement("input", {
+  type: "radio",
+  name: name,
+  value: value,
+  checked: current === value,
+  onChange: () => onChange(value)
+}), /*#__PURE__*/React.createElement("span", null, label));
+const Checkbox = ({
+  checked,
+  onChange,
+  label
+}) => /*#__PURE__*/React.createElement("label", {
+  className: `check-card ${checked ? "active" : ""}`
+}, /*#__PURE__*/React.createElement("input", {
+  type: "checkbox",
+  checked: checked,
+  onChange: onChange
+}), /*#__PURE__*/React.createElement("span", null, label));
+const Card = ({
+  children,
+  accent
+}) => /*#__PURE__*/React.createElement("div", {
+  className: "rounded-xl p-5 sm:p-7 mb-5",
+  style: {
+    background: "#FFFFFF",
+    border: `1px solid ${accent ? "#D6E3D9" : "#E8E2D5"}`,
+    boxShadow: "0 1px 2px rgba(40,40,30,0.03)"
+  }
+}, children);
+
+/* ───────────────── 各步驟 ───────────────── */
+
+const Welcome = ({
+  next
+}) => /*#__PURE__*/React.createElement("div", {
+  className: "pt-4"
+}, /*#__PURE__*/React.createElement("div", {
+  className: "mb-8"
+}, /*#__PURE__*/React.createElement("div", {
+  className: "text-[11px] tracking-[0.22em] uppercase mb-3",
+  style: {
+    color: "#C97B4A"
+  }
+}, "GROWTH ASSESSMENT · 生長評估"), /*#__PURE__*/React.createElement("h1", {
+  className: "display-font text-[40px] sm:text-[56px] font-semibold leading-[1.05] mb-5",
+  style: {
+    color: "#1F2520"
+  }
+}, "在見面之前，", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("span", {
+  className: "italic",
+  style: {
+    color: "#2D5A3F"
+  }
+}, "先讓我們認識"), " 您的孩子。"), /*#__PURE__*/React.createElement("p", {
+  className: "text-[16px] leading-relaxed max-w-xl",
+  style: {
+    color: "#4A4A40"
+  }
+}, "這份問卷將幫助醫師在您到診之前，掌握孩子生長狀況的全貌。 填寫過程約需 ", /*#__PURE__*/React.createElement("strong", {
+  style: {
+    color: "#2D5A3F"
+  }
+}, "10–15 分鐘"), "，請在安靜的時間慢慢思考。 填得越完整，醫師越能在有限的看診時間裡，給您最精準的建議。")), /*#__PURE__*/React.createElement("div", {
+  className: "grid grid-cols-1 sm:grid-cols-3 gap-3 mb-10"
+}, [{
+  n: "01",
+  t: "請準備兒童健康手冊",
+  d: "媽媽手冊內的歷次身高體重紀錄非常重要"
+}, {
+  n: "02",
+  t: "請準備學校健檢資料",
+  d: "聯絡簿或健檢卡上的身高體重變化"
+}, {
+  n: "03",
+  t: "請父母雙方都站起來實量",
+  d: "憑印象的身高會影響預估身高的準確度"
+}].map(x => /*#__PURE__*/React.createElement("div", {
+  key: x.n,
+  className: "p-5 rounded-lg",
+  style: {
+    background: "#FFFFFF",
+    border: "1px solid #E8E2D5"
+  }
+}, /*#__PURE__*/React.createElement("div", {
+  className: "display-font text-[24px] font-semibold mb-1.5",
+  style: {
+    color: "#C97B4A"
+  }
+}, x.n), /*#__PURE__*/React.createElement("div", {
+  className: "text-[14px] font-semibold mb-1",
+  style: {
+    color: "#1F2520"
+  }
+}, x.t), /*#__PURE__*/React.createElement("div", {
+  className: "text-[12.5px] leading-relaxed",
+  style: {
+    color: "#6B6B5E"
+  }
+}, x.d)))), /*#__PURE__*/React.createElement("button", {
+  onClick: next,
+  className: "group inline-flex items-center gap-2 px-7 py-3.5 rounded-full text-white font-medium transition-all hover:opacity-90",
+  style: {
+    background: "#2D5A3F"
+  }
+}, "開始填寫 ", /*#__PURE__*/React.createElement(ArrowRight, {
+  className: "w-4 h-4 group-hover:translate-x-0.5 transition-transform"
+})), /*#__PURE__*/React.createElement("p", {
+  className: "mt-8 text-[12.5px] leading-relaxed max-w-xl",
+  style: {
+    color: "#8A8473"
+  }
+}, "隱私聲明：本問卷資料僅供本院醫師診療使用，受醫療法規與病歷管理規範保護。系統會在您填寫過程中暫存，請避免中途關閉視窗。"));
+const BasicInfo = ({
+  data,
+  update
+}) => /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SectionHeader, {
+  kicker: "STEP 01",
+  title: "基本資料",
+  desc: "先從孩子與家長的基本資訊開始。",
+  icon: Users
+}), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("div", {
+  className: "grid grid-cols-2 gap-4 sm:gap-5"
+}, /*#__PURE__*/React.createElement(Field, {
+  label: "孩子姓名",
+  required: true,
+  half: true
+}, /*#__PURE__*/React.createElement("input", {
+  value: data.childName,
+  onChange: e => update("childName", e.target.value),
+  placeholder: "例：王小明"
+})), /*#__PURE__*/React.createElement(Field, {
+  label: "出生年月日",
+  required: true,
+  half: true
+}, /*#__PURE__*/React.createElement("input", {
+  type: "date",
+  value: data.birthDate,
+  onChange: e => update("birthDate", e.target.value)
+})), /*#__PURE__*/React.createElement(Field, {
+  label: "性別",
+  required: true,
+  half: true
+}, /*#__PURE__*/React.createElement("div", {
+  className: "grid grid-cols-2 gap-2"
+}, /*#__PURE__*/React.createElement(Radio, {
+  name: "g",
+  value: "male",
+  current: data.gender,
+  onChange: v => update("gender", v),
+  label: "男生"
+}), /*#__PURE__*/React.createElement(Radio, {
+  name: "g",
+  value: "female",
+  current: data.gender,
+  onChange: v => update("gender", v),
+  label: "女生"
+}))), /*#__PURE__*/React.createElement(Field, {
+  label: "就讀學校",
+  half: true
+}, /*#__PURE__*/React.createElement("input", {
+  value: data.school,
+  onChange: e => update("school", e.target.value),
+  placeholder: "例：竹北國小"
+})), /*#__PURE__*/React.createElement(Field, {
+  label: "年級",
+  half: true
+}, /*#__PURE__*/React.createElement("input", {
+  value: data.grade,
+  onChange: e => update("grade", e.target.value),
+  placeholder: "例：小三 / 國一"
+})))), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("div", {
+  className: "text-[12px] tracking-wider uppercase mb-4",
+  style: {
+    color: "#8A8473"
+  }
+}, "家長聯絡資訊"), /*#__PURE__*/React.createElement("div", {
+  className: "grid grid-cols-2 gap-4 sm:gap-5"
+}, /*#__PURE__*/React.createElement(Field, {
+  label: "家長姓名",
+  required: true,
+  half: true
+}, /*#__PURE__*/React.createElement("input", {
+  value: data.parentName,
+  onChange: e => update("parentName", e.target.value)
+})), /*#__PURE__*/React.createElement(Field, {
+  label: "與孩子關係",
+  required: true,
+  half: true
+}, /*#__PURE__*/React.createElement("select", {
+  value: data.parentRelation,
+  onChange: e => update("parentRelation", e.target.value)
+}, /*#__PURE__*/React.createElement("option", {
+  value: ""
+}, "請選擇"), /*#__PURE__*/React.createElement("option", null, "父親"), /*#__PURE__*/React.createElement("option", null, "母親"), /*#__PURE__*/React.createElement("option", null, "祖父母"), /*#__PURE__*/React.createElement("option", null, "其他親屬"))), /*#__PURE__*/React.createElement(Field, {
+  label: "聯絡電話",
+  required: true
+}, /*#__PURE__*/React.createElement("input", {
+  type: "tel",
+  value: data.parentPhone,
+  onChange: e => update("parentPhone", e.target.value),
+  placeholder: "0900-000-000"
+})))));
+const VisitReason = ({
+  data,
+  update,
+  toggle
+}) => {
+  const reasons = ["孩子身高比同齡偏矮", "覺得孩子長太慢", "孩子最近長太快", "第二性徵提早出現（性早熟疑慮）", "第二性徵延遲（發育較慢）", "體重過重 / 過輕", "想做生長潛力評估"];
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SectionHeader, {
+    kicker: "STEP 02",
+    title: "看診原因",
+    desc: "哪些事情讓您決定帶孩子來門診？",
+    icon: MessageCircle
+  }), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement(Field, {
+    label: "主要原因（可複選）",
+    required: true
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 sm:grid-cols-2 gap-2"
+  }, reasons.map(r => /*#__PURE__*/React.createElement(Checkbox, {
+    key: r,
+    checked: data.visitReason.includes(r),
+    onChange: () => toggle("visitReason", r),
+    label: r
+  })))), /*#__PURE__*/React.createElement("div", {
+    className: "mt-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "其他原因或想補充的內容"
+  }, /*#__PURE__*/React.createElement("textarea", {
+    rows: "2",
+    value: data.visitReasonOther,
+    onChange: e => update("visitReasonOther", e.target.value),
+    placeholder: "任何想讓醫師提前知道的內容..."
+  })))), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-4 sm:gap-5"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "開始注意到這個問題多久了？",
+    half: true
+  }, /*#__PURE__*/React.createElement("select", {
+    value: data.problemDuration,
+    onChange: e => update("problemDuration", e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "請選擇"), /*#__PURE__*/React.createElement("option", null, "3 個月內"), /*#__PURE__*/React.createElement("option", null, "3–6 個月"), /*#__PURE__*/React.createElement("option", null, "6 個月–1 年"), /*#__PURE__*/React.createElement("option", null, "1–2 年"), /*#__PURE__*/React.createElement("option", null, "超過 2 年"))), /*#__PURE__*/React.createElement(Field, {
+    label: "孩子在班上身高排名",
+    hint: "請孩子估計即可",
+    half: true
+  }, /*#__PURE__*/React.createElement("select", {
+    value: data.classRanking,
+    onChange: e => update("classRanking", e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "請選擇"), /*#__PURE__*/React.createElement("option", null, "班上前段（高的那一群）"), /*#__PURE__*/React.createElement("option", null, "班上中段"), /*#__PURE__*/React.createElement("option", null, "班上後段（矮的那一群）"), /*#__PURE__*/React.createElement("option", null, "班上最矮 1–3 名"))), /*#__PURE__*/React.createElement(Field, {
+    label: "最近一年大概長高幾公分？",
+    hint: "若不確定可從學校健檢卡推算"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: data.growthLastYear,
+    onChange: e => update("growthLastYear", e.target.value),
+    placeholder: "例：4 公分 / 不確定"
+  })))));
+};
+const BirthHistory = ({
+  data,
+  update,
+  toggle
+}) => {
+  const complications = ["缺氧急救", "腦傷", "黃疸（曾照光）", "抽筋", "低血糖", "住保溫箱"];
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SectionHeader, {
+    kicker: "STEP 03",
+    title: "出生史",
+    desc: "出生時的狀況可能與生長相關，特別是早產與出生體重。",
+    icon: Baby
+  }), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-4 sm:gap-5"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "第幾胎",
+    half: true
+  }, /*#__PURE__*/React.createElement("input", {
+    value: data.pregnancyOrder,
+    onChange: e => update("pregnancyOrder", e.target.value),
+    placeholder: "例：第 1 胎"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "懷孕週數",
+    hint: "足月為 37–40 週",
+    half: true
+  }, /*#__PURE__*/React.createElement("input", {
+    value: data.gestationalWeeks,
+    onChange: e => update("gestationalWeeks", e.target.value),
+    placeholder: "例：38 週"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "出生體重（克）",
+    required: true,
+    half: true
+  }, /*#__PURE__*/React.createElement("input", {
+    value: data.birthWeight,
+    onChange: e => update("birthWeight", e.target.value),
+    placeholder: "例：3200"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "生產方式",
+    half: true
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-2"
+  }, /*#__PURE__*/React.createElement(Radio, {
+    name: "d",
+    value: "自然產",
+    current: data.deliveryMethod,
+    onChange: v => update("deliveryMethod", v),
+    label: "自然產"
+  }), /*#__PURE__*/React.createElement(Radio, {
+    name: "d",
+    value: "剖腹產",
+    current: data.deliveryMethod,
+    onChange: v => update("deliveryMethod", v),
+    label: "剖腹產"
+  }))), data.deliveryMethod === "剖腹產" && /*#__PURE__*/React.createElement(Field, {
+    label: "剖腹原因"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: data.cesareanReason,
+    onChange: e => update("cesareanReason", e.target.value)
+  })))), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement(Field, {
+    label: "出生時是否有以下狀況？（可複選）"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 sm:grid-cols-3 gap-2"
+  }, /*#__PURE__*/React.createElement(Checkbox, {
+    checked: data.birthComplications.includes("無"),
+    onChange: () => toggle("birthComplications", "無"),
+    label: "都沒有"
+  }), complications.map(c => /*#__PURE__*/React.createElement(Checkbox, {
+    key: c,
+    checked: data.birthComplications.includes(c),
+    onChange: () => toggle("birthComplications", c),
+    label: c
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "mt-3"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: data.birthComplicationOther,
+    onChange: e => update("birthComplicationOther", e.target.value),
+    placeholder: "其他狀況（選填）"
+  })))));
+};
+const FamilyHistory = ({
+  data,
+  update,
+  toggle,
+  target
+}) => {
+  const diseases = ["矮小症", "性早熟", "甲狀腺疾病", "糖尿病", "骨骼發育異常", "遺傳性疾病"];
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SectionHeader, {
+    kicker: "STEP 04",
+    title: "家族史",
+    desc: "父母身高與家族發育型態，是預估孩子成年身高最重要的依據。請務必實測，不要憑印象。",
+    icon: Users
+  }), /*#__PURE__*/React.createElement(Card, {
+    accent: true
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-4 sm:gap-5"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "父親身高（公分）",
+    required: true,
+    half: true
+  }, /*#__PURE__*/React.createElement("input", {
+    value: data.fatherHeight,
+    onChange: e => update("fatherHeight", e.target.value),
+    placeholder: "例：172"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "母親身高（公分）",
+    required: true,
+    half: true
+  }, /*#__PURE__*/React.createElement("input", {
+    value: data.motherHeight,
+    onChange: e => update("motherHeight", e.target.value),
+    placeholder: "例：160"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "父親國中時期是否抽高？",
+    hint: "判斷是否為晚熟型體質",
+    half: true
+  }, /*#__PURE__*/React.createElement("select", {
+    value: data.fatherPubertyTime,
+    onChange: e => update("fatherPubertyTime", e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "請選擇"), /*#__PURE__*/React.createElement("option", null, "國小高年級就抽高"), /*#__PURE__*/React.createElement("option", null, "國中時期抽高"), /*#__PURE__*/React.createElement("option", null, "高中後才抽高（晚熟）"), /*#__PURE__*/React.createElement("option", null, "不確定"))), /*#__PURE__*/React.createElement(Field, {
+    label: "母親初經年齡",
+    half: true
+  }, /*#__PURE__*/React.createElement("input", {
+    value: data.motherMenarche,
+    onChange: e => update("motherMenarche", e.target.value),
+    placeholder: "例：12 歲 / 不記得"
+  }))), target && /*#__PURE__*/React.createElement("div", {
+    className: "mt-5 p-4 rounded-lg flex items-start gap-3",
+    style: {
+      background: "#F0F6F2",
+      border: "1px solid #C8D9CC"
+    }
+  }, /*#__PURE__*/React.createElement(Sparkles, {
+    className: "w-4 h-4 mt-0.5 flex-shrink-0",
+    style: {
+      color: "#2D5A3F"
+    }
+  }), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-[12px] tracking-wider uppercase mb-1",
+    style: {
+      color: "#2D5A3F"
+    }
+  }, "初步預估"), /*#__PURE__*/React.createElement("div", {
+    className: "text-[14px]",
+    style: {
+      color: "#1F2520"
+    }
+  }, "根據父母身高，孩子的", /*#__PURE__*/React.createElement("strong", null, "遺傳預估身高（Target Height）約為 ", target, " 公分"), "，正負 8 公分為合理範圍。")))), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement(Field, {
+    label: "兄弟姊妹身高與發育情況",
+    hint: "例如：哥哥 16 歲身高 178、妹妹 10 歲已胸部發育"
+  }, /*#__PURE__*/React.createElement("textarea", {
+    rows: "2",
+    value: data.siblingsInfo,
+    onChange: e => update("siblingsInfo", e.target.value),
+    placeholder: "若無兄弟姊妹可填「無」"
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "mt-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "家族中是否有以下疾病？（可複選）"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 sm:grid-cols-3 gap-2"
+  }, /*#__PURE__*/React.createElement(Checkbox, {
+    checked: data.familyDiseases.includes("無"),
+    onChange: () => toggle("familyDiseases", "無"),
+    label: "都沒有"
+  }), diseases.map(d => /*#__PURE__*/React.createElement(Checkbox, {
+    key: d,
+    checked: data.familyDiseases.includes(d),
+    onChange: () => toggle("familyDiseases", d),
+    label: d
+  }))), /*#__PURE__*/React.createElement("input", {
+    className: "mt-3",
+    value: data.familyDiseaseOther,
+    onChange: e => update("familyDiseaseOther", e.target.value),
+    placeholder: "其他（選填）"
+  })))));
+};
+const CurrentGrowth = ({
+  data,
+  update,
+  bmi,
+  age
+}) => /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SectionHeader, {
+  kicker: "STEP 05",
+  title: "目前生長狀況",
+  desc: "請填寫最近一次的身高體重，並上傳兒童手冊或學校健檢紀錄。",
+  icon: Ruler
+}), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("div", {
+  className: "grid grid-cols-2 gap-4 sm:gap-5"
+}, /*#__PURE__*/React.createElement(Field, {
+  label: "身高（公分）",
+  required: true,
+  half: true
+}, /*#__PURE__*/React.createElement("input", {
+  value: data.currentHeight,
+  onChange: e => update("currentHeight", e.target.value),
+  placeholder: "例：125.5"
+})), /*#__PURE__*/React.createElement(Field, {
+  label: "體重（公斤）",
+  required: true,
+  half: true
+}, /*#__PURE__*/React.createElement("input", {
+  value: data.currentWeight,
+  onChange: e => update("currentWeight", e.target.value),
+  placeholder: "例：24.3"
+})), /*#__PURE__*/React.createElement(Field, {
+  label: "測量日期",
+  half: true
+}, /*#__PURE__*/React.createElement("input", {
+  type: "date",
+  value: data.measureDate,
+  onChange: e => update("measureDate", e.target.value)
+}))), (bmi || age) && /*#__PURE__*/React.createElement("div", {
+  className: "mt-5 grid grid-cols-2 gap-3"
+}, age && /*#__PURE__*/React.createElement("div", {
+  className: "p-4 rounded-lg",
+  style: {
+    background: "#FBF8F1",
+    border: "1px solid #E2DCC8"
+  }
+}, /*#__PURE__*/React.createElement("div", {
+  className: "text-[11px] tracking-wider uppercase mb-1",
+  style: {
+    color: "#8A8473"
+  }
+}, "實足年齡"), /*#__PURE__*/React.createElement("div", {
+  className: "display-font text-[22px] font-semibold",
+  style: {
+    color: "#1F2520"
+  }
+}, age.years, " 歲 ", age.months, " 個月")), bmi && /*#__PURE__*/React.createElement("div", {
+  className: "p-4 rounded-lg",
+  style: {
+    background: "#FBF8F1",
+    border: "1px solid #E2DCC8"
+  }
+}, /*#__PURE__*/React.createElement("div", {
+  className: "text-[11px] tracking-wider uppercase mb-1",
+  style: {
+    color: "#8A8473"
+  }
+}, "BMI"), /*#__PURE__*/React.createElement("div", {
+  className: "display-font text-[22px] font-semibold",
+  style: {
+    color: "#1F2520"
+  }
+}, bmi)))), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("div", {
+  className: "flex items-start gap-3 mb-4"
+}, /*#__PURE__*/React.createElement(Upload, {
+  className: "w-5 h-5 mt-0.5",
+  style: {
+    color: "#2D5A3F"
+  }
+}), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+  className: "text-[14.5px] font-semibold mb-0.5"
+}, "兒童健康手冊 / 學校健檢紀錄"), /*#__PURE__*/React.createElement("div", {
+  className: "text-[12.5px]",
+  style: {
+    color: "#6B6B5E"
+  }
+}, "請拍照上傳歷年身高體重頁，可一次選多張。這對醫師判讀生長曲線變化非常重要。"))), /*#__PURE__*/React.createElement("label", {
+  className: "block"
+}, /*#__PURE__*/React.createElement("div", {
+  className: "flex flex-col items-center justify-center py-10 rounded-lg cursor-pointer transition-colors",
+  style: {
+    background: "#FAFCFA",
+    border: "2px dashed #C8D9CC"
+  }
+}, /*#__PURE__*/React.createElement(Upload, {
+  className: "w-6 h-6 mb-2",
+  style: {
+    color: "#2D5A3F"
+  }
+}), /*#__PURE__*/React.createElement("div", {
+  className: "text-[13.5px] font-medium",
+  style: {
+    color: "#2D5A3F"
+  }
+}, "點擊或拖曳照片到此"), /*#__PURE__*/React.createElement("div", {
+  className: "text-[12px] mt-1",
+  style: {
+    color: "#8A8473"
+  }
+}, "支援 JPG、PNG、PDF（單檔上限 10MB）")), /*#__PURE__*/React.createElement("input", {
+  type: "file",
+  multiple: true,
+  accept: "image/*,.pdf",
+  className: "hidden"
+}))));
+const Puberty = ({
+  data,
+  update
+}) => {
+  const isFemale = data.gender === "female";
+  const isMale = data.gender === "male";
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SectionHeader, {
+    kicker: "STEP 06",
+    title: "青春期發育狀況",
+    desc: "請依您觀察到的情況回答，這對判斷是否性早熟或發育延遲非常關鍵。",
+    icon: Sparkles
+  }), !data.gender && /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("div", {
+    className: "text-[14px]",
+    style: {
+      color: "#8A8473"
+    }
+  }, "請先回到第一步選擇孩子的性別，這個段落會依性別自動調整。")), isFemale && /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("div", {
+    className: "text-[12px] tracking-wider uppercase mb-4",
+    style: {
+      color: "#C97B4A"
+    }
+  }, "女童發育評估"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 gap-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "是否已有胸部發育（摸到硬塊或凸起）？"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-3 gap-2"
+  }, /*#__PURE__*/React.createElement(Radio, {
+    name: "bd",
+    value: "尚未",
+    current: data.breastDev,
+    onChange: v => update("breastDev", v),
+    label: "尚未"
+  }), /*#__PURE__*/React.createElement(Radio, {
+    name: "bd",
+    value: "已有",
+    current: data.breastDev,
+    onChange: v => update("breastDev", v),
+    label: "已有"
+  }), /*#__PURE__*/React.createElement(Radio, {
+    name: "bd",
+    value: "不確定",
+    current: data.breastDev,
+    onChange: v => update("breastDev", v),
+    label: "不確定"
+  }))), data.breastDev === "已有" && /*#__PURE__*/React.createElement(Field, {
+    label: "大約幾歲開始發現？"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: data.breastAge,
+    onChange: e => update("breastAge", e.target.value),
+    placeholder: "例：8 歲半"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "是否已有陰毛或腋毛？"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-3 gap-2"
+  }, /*#__PURE__*/React.createElement(Radio, {
+    name: "ph",
+    value: "尚未",
+    current: data.pubicHair,
+    onChange: v => update("pubicHair", v),
+    label: "尚未"
+  }), /*#__PURE__*/React.createElement(Radio, {
+    name: "ph",
+    value: "已有",
+    current: data.pubicHair,
+    onChange: v => update("pubicHair", v),
+    label: "已有"
+  }), /*#__PURE__*/React.createElement(Radio, {
+    name: "ph",
+    value: "不確定",
+    current: data.pubicHair,
+    onChange: v => update("pubicHair", v),
+    label: "不確定"
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "是否已有初經？"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-2"
+  }, /*#__PURE__*/React.createElement(Radio, {
+    name: "me",
+    value: "尚未",
+    current: data.menarcheStatus,
+    onChange: v => update("menarcheStatus", v),
+    label: "尚未"
+  }), /*#__PURE__*/React.createElement(Radio, {
+    name: "me",
+    value: "已有",
+    current: data.menarcheStatus,
+    onChange: v => update("menarcheStatus", v),
+    label: "已有"
+  }))), data.menarcheStatus === "已有" && /*#__PURE__*/React.createElement(Field, {
+    label: "初經年齡"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: data.menarcheAge,
+    onChange: e => update("menarcheAge", e.target.value),
+    placeholder: "例：11 歲 2 個月"
+  })))), isMale && /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("div", {
+    className: "text-[12px] tracking-wider uppercase mb-4",
+    style: {
+      color: "#C97B4A"
+    }
+  }, "男童發育評估"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 gap-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "是否開始變聲（聲音變低或破音）？"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-3 gap-2"
+  }, /*#__PURE__*/React.createElement(Radio, {
+    name: "vc",
+    value: "尚未",
+    current: data.voiceChange,
+    onChange: v => update("voiceChange", v),
+    label: "尚未"
+  }), /*#__PURE__*/React.createElement(Radio, {
+    name: "vc",
+    value: "已有",
+    current: data.voiceChange,
+    onChange: v => update("voiceChange", v),
+    label: "已有"
+  }), /*#__PURE__*/React.createElement(Radio, {
+    name: "vc",
+    value: "不確定",
+    current: data.voiceChange,
+    onChange: v => update("voiceChange", v),
+    label: "不確定"
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "睪丸是否變大？",
+    hint: "觀察與一年前的差異"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-3 gap-2"
+  }, /*#__PURE__*/React.createElement(Radio, {
+    name: "te",
+    value: "未變大",
+    current: data.testesChange,
+    onChange: v => update("testesChange", v),
+    label: "未變大"
+  }), /*#__PURE__*/React.createElement(Radio, {
+    name: "te",
+    value: "已變大",
+    current: data.testesChange,
+    onChange: v => update("testesChange", v),
+    label: "已變大"
+  }), /*#__PURE__*/React.createElement(Radio, {
+    name: "te",
+    value: "不確定",
+    current: data.testesChange,
+    onChange: v => update("testesChange", v),
+    label: "不確定"
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "是否已有陰毛或腋毛？"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-3 gap-2"
+  }, /*#__PURE__*/React.createElement(Radio, {
+    name: "ph",
+    value: "尚未",
+    current: data.pubicHair,
+    onChange: v => update("pubicHair", v),
+    label: "尚未"
+  }), /*#__PURE__*/React.createElement(Radio, {
+    name: "ph",
+    value: "已有",
+    current: data.pubicHair,
+    onChange: v => update("pubicHair", v),
+    label: "已有"
+  }), /*#__PURE__*/React.createElement(Radio, {
+    name: "ph",
+    value: "不確定",
+    current: data.pubicHair,
+    onChange: v => update("pubicHair", v),
+    label: "不確定"
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "是否已開始長鬍鬚？"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-2"
+  }, /*#__PURE__*/React.createElement(Radio, {
+    name: "bd",
+    value: "尚未",
+    current: data.beard,
+    onChange: v => update("beard", v),
+    label: "尚未"
+  }), /*#__PURE__*/React.createElement(Radio, {
+    name: "bd",
+    value: "已有",
+    current: data.beard,
+    onChange: v => update("beard", v),
+    label: "已有"
+  }))))), data.gender && /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("div", {
+    className: "text-[12px] tracking-wider uppercase mb-4",
+    style: {
+      color: "#8A8473"
+    }
+  }, "共通項目"), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 gap-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "近期是否體味變重？"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-2"
+  }, /*#__PURE__*/React.createElement(Radio, {
+    name: "bo",
+    value: "否",
+    current: data.bodyOdor,
+    onChange: v => update("bodyOdor", v),
+    label: "沒有"
+  }), /*#__PURE__*/React.createElement(Radio, {
+    name: "bo",
+    value: "是",
+    current: data.bodyOdor,
+    onChange: v => update("bodyOdor", v),
+    label: "有"
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "是否開始長青春痘？"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-2"
+  }, /*#__PURE__*/React.createElement(Radio, {
+    name: "ac",
+    value: "否",
+    current: data.acne,
+    onChange: v => update("acne", v),
+    label: "沒有"
+  }), /*#__PURE__*/React.createElement(Radio, {
+    name: "ac",
+    value: "是",
+    current: data.acne,
+    onChange: v => update("acne", v),
+    label: "有"
+  }))), /*#__PURE__*/React.createElement(Field, {
+    label: "近半年是否身高突然抽高？",
+    hint: "例如半年內長 4 公分以上"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-3 gap-2"
+  }, /*#__PURE__*/React.createElement(Radio, {
+    name: "rs",
+    value: "否",
+    current: data.recentSpurt,
+    onChange: v => update("recentSpurt", v),
+    label: "沒有"
+  }), /*#__PURE__*/React.createElement(Radio, {
+    name: "rs",
+    value: "是",
+    current: data.recentSpurt,
+    onChange: v => update("recentSpurt", v),
+    label: "有"
+  }), /*#__PURE__*/React.createElement(Radio, {
+    name: "rs",
+    value: "不確定",
+    current: data.recentSpurt,
+    onChange: v => update("recentSpurt", v),
+    label: "不確定"
+  }))))));
+};
+const Lifestyle = ({
+  data,
+  update,
+  toggle
+}) => {
+  const sleepIssues = ["打呼", "磨牙", "夢遊", "睡不安穩", "難入睡", "夜間易醒"];
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SectionHeader, {
+    kicker: "STEP 07",
+    title: "生活作息",
+    desc: "生長激素主要在深層睡眠時分泌，作息對長高至關重要。",
+    icon: Moon
+  }), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-4 sm:gap-5"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "平日上床時間",
+    required: true,
+    half: true
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "time",
+    value: data.weekdayBedtime,
+    onChange: e => update("weekdayBedtime", e.target.value)
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "平日起床時間",
+    half: true
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "time",
+    value: data.weekdayWake,
+    onChange: e => update("weekdayWake", e.target.value)
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "假日上床時間（若差異大）",
+    half: true
+  }, /*#__PURE__*/React.createElement("input", {
+    type: "time",
+    value: data.weekendBedtime,
+    onChange: e => update("weekendBedtime", e.target.value)
+  }))), /*#__PURE__*/React.createElement("div", {
+    className: "mt-4"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "睡眠狀況（可複選）"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 sm:grid-cols-3 gap-2"
+  }, /*#__PURE__*/React.createElement(Checkbox, {
+    checked: data.sleepIssues.includes("睡眠品質好"),
+    onChange: () => toggle("sleepIssues", "睡眠品質好"),
+    label: "睡眠品質好"
+  }), sleepIssues.map(s => /*#__PURE__*/React.createElement(Checkbox, {
+    key: s,
+    checked: data.sleepIssues.includes(s),
+    onChange: () => toggle("sleepIssues", s),
+    label: s
+  })))))), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-4 sm:gap-5"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "運動頻率（每週幾次）",
+    half: true
+  }, /*#__PURE__*/React.createElement("select", {
+    value: data.exerciseFreq,
+    onChange: e => update("exerciseFreq", e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "請選擇"), /*#__PURE__*/React.createElement("option", null, "幾乎不運動"), /*#__PURE__*/React.createElement("option", null, "1–2 次"), /*#__PURE__*/React.createElement("option", null, "3–4 次"), /*#__PURE__*/React.createElement("option", null, "5 次以上"))), /*#__PURE__*/React.createElement(Field, {
+    label: "平日 3C 螢幕時間（每天）",
+    half: true
+  }, /*#__PURE__*/React.createElement("select", {
+    value: data.screenTime,
+    onChange: e => update("screenTime", e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "請選擇"), /*#__PURE__*/React.createElement("option", null, "少於 1 小時"), /*#__PURE__*/React.createElement("option", null, "1–2 小時"), /*#__PURE__*/React.createElement("option", null, "2–4 小時"), /*#__PURE__*/React.createElement("option", null, "超過 4 小時"))), /*#__PURE__*/React.createElement(Field, {
+    label: "主要運動種類",
+    hint: "跳繩、籃球、游泳、伸展操等對長高特別有幫助"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: data.exerciseTypes,
+    onChange: e => update("exerciseTypes", e.target.value),
+    placeholder: "例：直排輪、跳繩"
+  })))));
+};
+const Diet = ({
+  data,
+  update,
+  toggle
+}) => {
+  const supplements = ["中草藥 / 轉骨方", "雞皮", "山藥", "精油", "乳液（含香精）", "鈣片", "蜂王乳", "羊奶", "雞精", "綜合維他命", "成長配方"];
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SectionHeader, {
+    kicker: "STEP 08",
+    title: "飲食習慣",
+    desc: "特別注意：含荷爾蒙的補品（如蜂王乳、雞精、轉骨方）可能提早啟動青春期，請務必誠實填寫。",
+    icon: Apple
+  }), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-4 sm:gap-5"
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "食量",
+    half: true
+  }, /*#__PURE__*/React.createElement("select", {
+    value: data.appetite,
+    onChange: e => update("appetite", e.target.value)
+  }, /*#__PURE__*/React.createElement("option", {
+    value: ""
+  }, "請選擇"), /*#__PURE__*/React.createElement("option", null, "正常"), /*#__PURE__*/React.createElement("option", null, "食量小 / 不足"), /*#__PURE__*/React.createElement("option", null, "食量大"))), /*#__PURE__*/React.createElement(Field, {
+    label: "是否偏食？",
+    half: true
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-2"
+  }, /*#__PURE__*/React.createElement(Radio, {
+    name: "pe",
+    value: "否",
+    current: data.pickyEating,
+    onChange: v => update("pickyEating", v),
+    label: "沒有"
+  }), /*#__PURE__*/React.createElement(Radio, {
+    name: "pe",
+    value: "是",
+    current: data.pickyEating,
+    onChange: v => update("pickyEating", v),
+    label: "有"
+  }))), data.pickyEating === "是" && /*#__PURE__*/React.createElement(Field, {
+    label: "不愛吃哪些？"
+  }, /*#__PURE__*/React.createElement("input", {
+    value: data.pickyDetails,
+    onChange: e => update("pickyDetails", e.target.value),
+    placeholder: "例：青菜、肉類"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "每天奶類攝取量（毫升）",
+    half: true
+  }, /*#__PURE__*/React.createElement("input", {
+    value: data.dairyIntake,
+    onChange: e => update("dairyIntake", e.target.value),
+    placeholder: "例：500"
+  })), /*#__PURE__*/React.createElement(Field, {
+    label: "是否每天吃早餐？",
+    half: true
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 gap-2"
+  }, /*#__PURE__*/React.createElement(Radio, {
+    name: "bf",
+    value: "是",
+    current: data.breakfast,
+    onChange: v => update("breakfast", v),
+    label: "有"
+  }), /*#__PURE__*/React.createElement(Radio, {
+    name: "bf",
+    value: "否",
+    current: data.breakfast,
+    onChange: v => update("breakfast", v),
+    label: "沒有"
+  }))))), /*#__PURE__*/React.createElement(Card, {
+    accent: true
+  }, /*#__PURE__*/React.createElement(Field, {
+    label: "長期食用的保健食品 / 補品（可複選）",
+    hint: "無論誰買的、吃多久，請都列出來，醫師需要全面評估"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-2 sm:grid-cols-3 gap-2"
+  }, /*#__PURE__*/React.createElement(Checkbox, {
+    checked: data.supplements.includes("無"),
+    onChange: () => toggle("supplements", "無"),
+    label: "都沒有"
+  }), supplements.map(s => /*#__PURE__*/React.createElement(Checkbox, {
+    key: s,
+    checked: data.supplements.includes(s),
+    onChange: () => toggle("supplements", s),
+    label: s
+  }))), /*#__PURE__*/React.createElement("input", {
+    className: "mt-3",
+    value: data.supplementOther,
+    onChange: e => update("supplementOther", e.target.value),
+    placeholder: "其他保健食品（含品牌與服用時間，選填）"
+  }))));
+};
+const Medical = ({
+  data,
+  update
+}) => /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SectionHeader, {
+  kicker: "STEP 09",
+  title: "病史與用藥",
+  desc: "慢性疾病、長期用藥（特別是類固醇）會直接影響生長。",
+  icon: Stethoscope
+}), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement(Field, {
+  label: "藥物過敏",
+  required: true
+}, /*#__PURE__*/React.createElement("div", {
+  className: "grid grid-cols-2 gap-2 mb-3"
+}, /*#__PURE__*/React.createElement(Radio, {
+  name: "da",
+  value: "無",
+  current: data.drugAllergy,
+  onChange: v => update("drugAllergy", v),
+  label: "無藥物過敏"
+}), /*#__PURE__*/React.createElement(Radio, {
+  name: "da",
+  value: "有",
+  current: data.drugAllergy,
+  onChange: v => update("drugAllergy", v),
+  label: "有藥物過敏"
+})), data.drugAllergy === "有" && /*#__PURE__*/React.createElement("input", {
+  value: data.drugAllergyDetails,
+  onChange: e => update("drugAllergyDetails", e.target.value),
+  placeholder: "請列出過敏藥物"
+}))), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement(Field, {
+  label: "重大疾病或慢性病"
+}, /*#__PURE__*/React.createElement("div", {
+  className: "grid grid-cols-2 gap-2 mb-3"
+}, /*#__PURE__*/React.createElement(Radio, {
+  name: "cd",
+  value: "無",
+  current: data.chronicDisease,
+  onChange: v => update("chronicDisease", v),
+  label: "無"
+}), /*#__PURE__*/React.createElement(Radio, {
+  name: "cd",
+  value: "有",
+  current: data.chronicDisease,
+  onChange: v => update("chronicDisease", v),
+  label: "有"
+})), data.chronicDisease === "有" && /*#__PURE__*/React.createElement("textarea", {
+  rows: "2",
+  value: data.chronicDetails,
+  onChange: e => update("chronicDetails", e.target.value),
+  placeholder: "例：氣喘、過敏性鼻炎、腎臟疾病、心臟疾病..."
+}))), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement(Field, {
+  label: "腦部相關疾病或外傷",
+  hint: "腦部問題可能影響腦下垂體功能與生長激素分泌"
+}, /*#__PURE__*/React.createElement("div", {
+  className: "grid grid-cols-2 gap-2 mb-3"
+}, /*#__PURE__*/React.createElement(Radio, {
+  name: "bd",
+  value: "無",
+  current: data.brainDisease,
+  onChange: v => update("brainDisease", v),
+  label: "無"
+}), /*#__PURE__*/React.createElement(Radio, {
+  name: "bd",
+  value: "有",
+  current: data.brainDisease,
+  onChange: v => update("brainDisease", v),
+  label: "有"
+})), data.brainDisease === "有" && /*#__PURE__*/React.createElement("input", {
+  value: data.brainDiseaseDetails,
+  onChange: e => update("brainDiseaseDetails", e.target.value),
+  placeholder: "例：曾撞傷頭部、癲癇、腦部腫瘤"
+}))), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement(Field, {
+  label: "目前長期使用的藥物",
+  hint: "特別是類固醇、氣喘藥、抗癲癇藥、ADHD 用藥等"
+}, /*#__PURE__*/React.createElement("textarea", {
+  rows: "2",
+  value: data.longTermMeds,
+  onChange: e => update("longTermMeds", e.target.value),
+  placeholder: "若無請填「無」"
+}))));
+const RedFlags = ({
+  data,
+  toggle
+}) => {
+  const flags = ["經常頭痛", "視力模糊或視野缺損", "容易疲倦、體力差", "怕冷、手腳冰冷", "便秘", "注意力不集中、學習退步", "情緒變化大、易怒", "皮膚乾燥粗糙", "脖子有腫塊", "心跳快、易流汗", "近期體重明顯增加或減少"];
+  return /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SectionHeader, {
+    kicker: "STEP 10",
+    title: "近期身體症狀",
+    desc: "這些症狀有助於醫師判斷是否需要進一步檢查腦下垂體、甲狀腺或其他內分泌問題。",
+    icon: AlertCircle
+  }), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement(Field, {
+    label: "孩子最近 3 個月是否有以下狀況？（可複選）",
+    hint: "如果都沒有也請勾選「都沒有」確認"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 sm:grid-cols-2 gap-2"
+  }, /*#__PURE__*/React.createElement(Checkbox, {
+    checked: data.redFlags.includes("都沒有"),
+    onChange: () => toggle("redFlags", "都沒有"),
+    label: "都沒有以上狀況"
+  }), flags.map(f => /*#__PURE__*/React.createElement(Checkbox, {
+    key: f,
+    checked: data.redFlags.includes(f),
+    onChange: () => toggle("redFlags", f),
+    label: f
+  }))))));
+};
+const Expectations = ({
+  data,
+  update
+}) => /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(SectionHeader, {
+  kicker: "STEP 11",
+  title: "您的期望",
+  desc: "最後一段，告訴醫師您最在意的事情。",
+  icon: ClipboardCheck
+}), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement(Field, {
+  label: "是否曾在其他醫院或診所評估過生長問題？"
+}, /*#__PURE__*/React.createElement("div", {
+  className: "grid grid-cols-2 gap-2 mb-3"
+}, /*#__PURE__*/React.createElement(Radio, {
+  name: "pv",
+  value: "否",
+  current: data.prevEvaluation,
+  onChange: v => update("prevEvaluation", v),
+  label: "沒有"
+}), /*#__PURE__*/React.createElement(Radio, {
+  name: "pv",
+  value: "是",
+  current: data.prevEvaluation,
+  onChange: v => update("prevEvaluation", v),
+  label: "有"
+})), data.prevEvaluation === "是" && /*#__PURE__*/React.createElement("textarea", {
+  rows: "2",
+  value: data.prevDetails,
+  onChange: e => update("prevDetails", e.target.value),
+  placeholder: "醫院名稱、做過哪些檢查（骨齡 X 光、抽血等）、檢查結果"
+})), /*#__PURE__*/React.createElement("div", {
+  className: "mt-4"
+}, /*#__PURE__*/React.createElement(Field, {
+  label: "目前是否有正在使用的治療（生長激素、性早熟針劑等）"
+}, /*#__PURE__*/React.createElement("input", {
+  value: data.currentTreatment,
+  onChange: e => update("currentTreatment", e.target.value),
+  placeholder: "若無請填「無」"
+})))), /*#__PURE__*/React.createElement(Card, null, /*#__PURE__*/React.createElement(Field, {
+  label: "今天最希望醫師幫您解決的問題",
+  required: true,
+  hint: "100 字以內，越具體越好"
+}, /*#__PURE__*/React.createElement("textarea", {
+  rows: "3",
+  value: data.mainConcern,
+  onChange: e => update("mainConcern", e.target.value),
+  placeholder: "例：女兒 8 歲已胸部發育，擔心是否性早熟、未來會長不高..."
+})), /*#__PURE__*/React.createElement("div", {
+  className: "mt-4 grid grid-cols-2 gap-4 sm:gap-5"
+}, /*#__PURE__*/React.createElement(Field, {
+  label: "對孩子身高的期望",
+  half: true
+}, /*#__PURE__*/React.createElement("input", {
+  value: data.heightGoal,
+  onChange: e => update("heightGoal", e.target.value),
+  placeholder: "例：希望能達到 170 公分"
+})), /*#__PURE__*/React.createElement(Field, {
+  label: "對長期治療的接受度",
+  hint: "生長激素治療通常每日施打、需追蹤 1–4 年",
+  half: true
+}, /*#__PURE__*/React.createElement("select", {
+  value: data.treatmentAcceptance,
+  onChange: e => update("treatmentAcceptance", e.target.value)
+}, /*#__PURE__*/React.createElement("option", {
+  value: ""
+}, "請選擇"), /*#__PURE__*/React.createElement("option", null, "願意配合任何必要治療"), /*#__PURE__*/React.createElement("option", null, "視評估結果再決定"), /*#__PURE__*/React.createElement("option", null, "偏好先觀察追蹤"), /*#__PURE__*/React.createElement("option", null, "希望先了解非藥物方案"))))));
+
+/* ───────────────── 完成頁（含 PDF 下載） ───────────────── */
+const Summary = ({
+  data,
+  target,
+  bmi,
+  age,
+  setStep,
+  onSubmit,
+  submitState,
+  pdfReady,
+  mailSent
+}) => {
+  // 診所 LINE 連結
+  const CLINIC_LINE_URL = "https://lin.ee/NMmwK8v";
+  const CLINIC_EMAIL = "341guwu@gmail.com";
+  const isGenerating = submitState === "generating";
+  const isDone = submitState === "done";
+  const isError = submitState === "error";
+  return /*#__PURE__*/React.createElement("div", {
+    className: "text-center pt-6"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "inline-flex items-center justify-center w-16 h-16 rounded-full mb-6",
+    style: {
+      background: "#F0F6F2",
+      border: "1px solid #C8D9CC"
+    }
+  }, /*#__PURE__*/React.createElement(Check, {
+    className: "w-7 h-7",
+    style: {
+      color: "#2D5A3F"
+    },
+    strokeWidth: 2.5
+  })), /*#__PURE__*/React.createElement("div", {
+    className: "text-[11px] tracking-[0.22em] uppercase mb-3",
+    style: {
+      color: "#C97B4A"
+    }
+  }, "SUBMISSION READY"), /*#__PURE__*/React.createElement("h2", {
+    className: "display-font text-[34px] sm:text-[44px] font-semibold leading-tight mb-4",
+    style: {
+      color: "#1F2520"
+    }
+  }, "問卷已完成，", /*#__PURE__*/React.createElement("br", null), /*#__PURE__*/React.createElement("span", {
+    className: "italic",
+    style: {
+      color: "#2D5A3F"
+    }
+  }, "謝謝您的耐心。")), /*#__PURE__*/React.createElement("p", {
+    className: "text-[15px] max-w-lg mx-auto mb-10",
+    style: {
+      color: "#6B6B5E"
+    }
+  }, "以下是依您填寫資料生成的初步摘要。請按下方按鈕下載 PDF，並透過 LINE 傳給診所，醫師會在看診前完整審閱。"), /*#__PURE__*/React.createElement("div", {
+    className: "text-left max-w-xl mx-auto mb-8"
+  }, /*#__PURE__*/React.createElement(Card, {
+    accent: true
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-[12px] tracking-wider uppercase mb-4",
+    style: {
+      color: "#2D5A3F"
+    }
+  }, "初步摘要"), /*#__PURE__*/React.createElement("div", {
+    className: "space-y-3 text-[14px]"
+  }, /*#__PURE__*/React.createElement(Row, {
+    k: "孩子",
+    v: `${data.childName || "—"}（${data.gender === "male" ? "男" : data.gender === "female" ? "女" : "—"}）`
+  }), /*#__PURE__*/React.createElement(Row, {
+    k: "實足年齡",
+    v: age ? `${age.years} 歲 ${age.months} 個月` : "—"
+  }), /*#__PURE__*/React.createElement(Row, {
+    k: "目前身高 / 體重",
+    v: data.currentHeight && data.currentWeight ? `${data.currentHeight} cm / ${data.currentWeight} kg` : "—"
+  }), /*#__PURE__*/React.createElement(Row, {
+    k: "BMI",
+    v: bmi || "—"
+  }), /*#__PURE__*/React.createElement(Row, {
+    k: "父母身高",
+    v: data.fatherHeight && data.motherHeight ? `父 ${data.fatherHeight} / 母 ${data.motherHeight} cm` : "—"
+  }), /*#__PURE__*/React.createElement(Row, {
+    k: "預估遺傳身高",
+    v: target ? `${target} cm（±8 cm）` : "—",
+    highlight: true
+  }), /*#__PURE__*/React.createElement(Row, {
+    k: "主訴",
+    v: data.visitReason.length ? data.visitReason.join("、") : "—"
+  }), /*#__PURE__*/React.createElement(Row, {
+    k: "出生體重",
+    v: data.birthWeight ? `${data.birthWeight} g` : "—"
+  }), /*#__PURE__*/React.createElement(Row, {
+    k: "平日上床時間",
+    v: data.weekdayBedtime || "—"
+  })))), !isDone && /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement("div", {
+    className: "flex flex-col sm:flex-row gap-3 justify-center"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: () => setStep(1),
+    disabled: isGenerating,
+    className: "px-6 py-3 rounded-full text-sm font-medium transition-all disabled:opacity-50",
+    style: {
+      color: "#2D5A3F",
+      border: "1px solid #2D5A3F"
+    }
+  }, "返回修改"), /*#__PURE__*/React.createElement("button", {
+    onClick: onSubmit,
+    disabled: isGenerating || !pdfReady,
+    className: "inline-flex items-center justify-center gap-2 px-7 py-3 rounded-full text-sm font-medium text-white transition-all hover:opacity-90 disabled:opacity-60",
+    style: {
+      background: "#2D5A3F"
+    }
+  }, isGenerating ? /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Loader2, {
+    className: "w-4 h-4 animate-spin"
+  }), "正在產生 PDF...") : /*#__PURE__*/React.createElement(React.Fragment, null, /*#__PURE__*/React.createElement(Download, {
+    className: "w-4 h-4"
+  }), "送出並下載 PDF"))), !pdfReady && /*#__PURE__*/React.createElement("p", {
+    className: "mt-5 text-[12px]",
+    style: {
+      color: "#8A8473"
+    }
+  }, "PDF 工具載入中，請稍候 1–2 秒..."), isError && /*#__PURE__*/React.createElement("p", {
+    className: "mt-5 text-[13px]",
+    style: {
+      color: "#C0392B"
+    }
+  }, "PDF 產生失敗，請重新整理頁面後再試一次。"), /*#__PURE__*/React.createElement("p", {
+    className: "mt-10 text-[12px] max-w-md mx-auto",
+    style: {
+      color: "#8A8473"
+    }
+  }, "按下「送出並下載 PDF」後，PDF 會自動儲存到您的手機 / 電腦下載夾，請接著傳給診所 LINE 完成送件。")), isDone && /*#__PURE__*/React.createElement("div", {
+    className: "max-w-xl mx-auto"
+  }, mailSent && /*#__PURE__*/React.createElement("div", {
+    className: "rounded-xl px-5 py-4 mb-4 text-left",
+    style: {
+      background: "#EAF6EE",
+      border: "1px solid #A9D2B6"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "text-[14px] font-medium",
+    style: {
+      color: "#1F2520"
+    }
+  }, "✓ 問卷 PDF 已自動寄送至診所信箱；您下載的檔案也已保存一份。")), /*#__PURE__*/React.createElement("div", {
+    className: "rounded-xl p-6 sm:p-8 text-left",
+    style: {
+      background: "#F0F6F2",
+      border: "1px solid #C8D9CC"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex items-start gap-3 mb-4"
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "flex-shrink-0 w-10 h-10 rounded-full flex items-center justify-center",
+    style: {
+      background: "#FFFFFF",
+      border: "1px solid #2D5A3F"
+    }
+  }, /*#__PURE__*/React.createElement(FileCheck, {
+    className: "w-5 h-5",
+    style: {
+      color: "#2D5A3F"
+    }
+  })), /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    className: "text-[15px] font-semibold mb-1",
+    style: {
+      color: "#1F2520"
+    }
+  }, "PDF 已下載到您的裝置"), /*#__PURE__*/React.createElement("div", {
+    className: "text-[13px] leading-relaxed",
+    style: {
+      color: "#4A4A40"
+    }
+  }, "最後一步：請將剛才下載的 PDF 透過下列任一方式傳給診所，看診當天醫師會直接調閱。"))), /*#__PURE__*/React.createElement("div", {
+    className: "grid grid-cols-1 sm:grid-cols-2 gap-3 mt-5"
+  }, /*#__PURE__*/React.createElement("a", {
+    href: CLINIC_LINE_URL,
+    target: "_blank",
+    rel: "noopener noreferrer",
+    className: "flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium text-white transition-all hover:opacity-90",
+    style: {
+      background: "#06C755"
+    }
+  }, "透過 LINE 傳送"), /*#__PURE__*/React.createElement("a", {
+    href: `mailto:${CLINIC_EMAIL}?subject=${encodeURIComponent("生長門診問卷 - " + (data.childName || ""))}&body=${encodeURIComponent("您好，附件為孩子的生長門診問卷，請查收。\n\n孩子姓名：" + (data.childName || "") + "\n家長姓名：" + (data.parentName || "") + "\n聯絡電話：" + (data.parentPhone || ""))}`,
+    className: "flex items-center justify-center gap-2 px-5 py-3 rounded-full text-sm font-medium transition-all",
+    style: {
+      background: "#FFFFFF",
+      color: "#2D5A3F",
+      border: "1px solid #2D5A3F"
+    }
+  }, "透過 Email 傳送")), /*#__PURE__*/React.createElement("div", {
+    className: "mt-5 pt-5 text-[12.5px] leading-relaxed",
+    style: {
+      color: "#6B6B5E",
+      borderTop: "1px solid #D6E3D9"
+    }
+  }, "提醒：傳送時請附上孩子姓名與預約時段。若您尚未預約，可在 LINE 上直接告訴小編想看診的時間。")), /*#__PURE__*/React.createElement("div", {
+    className: "mt-6 flex flex-col sm:flex-row gap-3 justify-center"
+  }, /*#__PURE__*/React.createElement("button", {
+    onClick: onSubmit,
+    className: "px-6 py-3 rounded-full text-sm font-medium transition-all",
+    style: {
+      color: "#2D5A3F",
+      border: "1px solid #2D5A3F"
+    }
+  }, "重新下載 PDF"), /*#__PURE__*/React.createElement("button", {
+    onClick: () => setStep(1),
+    className: "px-6 py-3 rounded-full text-sm font-medium transition-all",
+    style: {
+      color: "#6B6B5E",
+      border: "1px solid #E2DCC8"
+    }
+  }, "返回修改資料"))));
+};
+const Row = ({
+  k,
+  v,
+  highlight
+}) => /*#__PURE__*/React.createElement("div", {
+  className: "flex justify-between items-baseline gap-4 pb-2 border-b",
+  style: {
+    borderColor: "#EFEAD9"
+  }
+}, /*#__PURE__*/React.createElement("span", {
+  className: "text-[12.5px] tracking-wide",
+  style: {
+    color: "#8A8473"
+  }
+}, k), /*#__PURE__*/React.createElement("span", {
+  className: "font-medium text-right",
+  style: {
+    color: highlight ? "#2D5A3F" : "#1F2520"
+  }
+}, v));
+
+/* ───────────────── PDF 列印版面 ─────────────────
+   專為 PDF 輸出設計，定位於螢幕外，html2canvas 會擷取此區塊渲染。
+   採用 A4（210mm 寬）、無多餘色彩，方便印出歸檔。
+*/
+const PrintableSummary = forwardRef((props, ref) => {
+  const {
+    data,
+    target,
+    bmi,
+    age
+  } = props;
+  const today = new Date();
+  const dateStr = `${today.getFullYear()}/${String(today.getMonth() + 1).padStart(2, "0")}/${String(today.getDate()).padStart(2, "0")}`;
+  const dash = "—";
+  const arrayOrDash = (arr, otherText) => {
+    const items = (arr || []).filter(Boolean);
+    const list = items.length ? items.join("、") : "";
+    if (otherText) return list ? `${list}；其他：${otherText}` : `其他：${otherText}`;
+    return list || dash;
+  };
+  const v = x => x === undefined || x === null || x === "" ? dash : x;
+
+  // 紅旗症狀：只取「有勾」且非「都沒有」的項目
+  const rfList = (data.redFlags || []).filter(f => f && f !== "都沒有");
+  const hasRedFlag = rfList.length > 0;
+  const labelStyle = {
+    fontSize: "10pt",
+    color: "#666",
+    width: "32%",
+    verticalAlign: "top",
+    padding: "5px 8px 5px 0"
+  };
+  const valueStyle = {
+    fontSize: "10.5pt",
+    color: "#1F2520",
+    padding: "5px 0"
+  };
+  const SectionTitle = ({
+    num,
+    title
+  }) => /*#__PURE__*/React.createElement("div", {
+    className: "pdf-avoid-break",
+    style: {
+      marginTop: "14px",
+      marginBottom: "6px",
+      paddingBottom: "4px",
+      borderBottom: "1.5px solid #2D5A3F",
+      display: "flex",
+      alignItems: "baseline",
+      gap: "8px"
+    }
+  }, /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: "9pt",
+      fontWeight: 600,
+      color: "#2D5A3F",
+      letterSpacing: "1px"
+    }
+  }, num), /*#__PURE__*/React.createElement("span", {
+    style: {
+      fontSize: "13pt",
+      fontWeight: 700,
+      color: "#1F2520"
+    }
+  }, title));
+  const Table = ({
+    rows
+  }) => /*#__PURE__*/React.createElement("table", {
+    className: "pdf-avoid-break",
+    style: {
+      width: "100%",
+      borderCollapse: "collapse",
+      marginBottom: "4px"
+    }
+  }, /*#__PURE__*/React.createElement("tbody", null, rows.map((r, i) => /*#__PURE__*/React.createElement("tr", {
+    key: i
+  }, /*#__PURE__*/React.createElement("td", {
+    style: labelStyle
+  }, r[0]), /*#__PURE__*/React.createElement("td", {
+    style: valueStyle
+  }, r[1])))));
+  return /*#__PURE__*/React.createElement("div", {
+    ref: ref,
+    style: {
+      width: "210mm",
+      minHeight: "297mm",
+      padding: "12mm 14mm",
+      background: "#FFFFFF",
+      color: "#1F2520",
+      fontFamily: "'Noto Sans TC', 'PingFang TC', 'Microsoft JhengHei', sans-serif",
+      fontSize: "11pt",
+      lineHeight: 1.6,
+      boxSizing: "border-box"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    className: "pdf-avoid-break",
+    style: {
+      display: "flex",
+      justifyContent: "space-between",
+      alignItems: "flex-start",
+      paddingBottom: "10px",
+      borderBottom: "2px solid #2D5A3F",
+      marginBottom: "10px"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "9pt",
+      color: "#666",
+      letterSpacing: "2px",
+      marginBottom: "2px"
+    }
+  }, "陪你長大小兒科診所 · CHILDCARE CLINIC"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "20pt",
+      fontWeight: 700,
+      color: "#1F2520",
+      letterSpacing: "1px"
+    }
+  }, "兒童生長門診評估表")), /*#__PURE__*/React.createElement("div", {
+    style: {
+      textAlign: "right",
+      fontSize: "9.5pt",
+      color: "#666"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, "填寫日期：", dateStr), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: "3px"
+    }
+  }, "填表人：", v(data.parentName), "（", v(data.parentRelation), "）"))), /*#__PURE__*/React.createElement("div", {
+    className: "pdf-avoid-break",
+    style: {
+      background: "#F0F6F2",
+      border: "1px solid #C8D9CC",
+      borderRadius: "6px",
+      padding: "10px 14px",
+      marginBottom: "10px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "9pt",
+      color: "#2D5A3F",
+      letterSpacing: "2px",
+      marginBottom: "6px",
+      fontWeight: 600
+    }
+  }, "QUICK SUMMARY · 重點摘要"), /*#__PURE__*/React.createElement("table", {
+    style: {
+      width: "100%",
+      borderCollapse: "collapse"
+    }
+  }, /*#__PURE__*/React.createElement("tbody", null, /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    style: {
+      ...labelStyle,
+      width: "20%"
+    }
+  }, "孩子姓名"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      ...valueStyle,
+      width: "30%",
+      fontWeight: 600
+    }
+  }, v(data.childName), "（", data.gender === "male" ? "男" : data.gender === "female" ? "女" : "—", "）"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      ...labelStyle,
+      width: "20%"
+    }
+  }, "實足年齡"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      ...valueStyle,
+      width: "30%",
+      fontWeight: 600
+    }
+  }, age ? `${age.years} 歲 ${age.months} 個月` : dash)), /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    style: labelStyle
+  }, "身高 / 體重"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      ...valueStyle,
+      fontWeight: 600
+    }
+  }, data.currentHeight && data.currentWeight ? `${data.currentHeight} cm / ${data.currentWeight} kg` : dash), /*#__PURE__*/React.createElement("td", {
+    style: labelStyle
+  }, "BMI"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      ...valueStyle,
+      fontWeight: 600
+    }
+  }, v(bmi))), /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    style: labelStyle
+  }, "父母身高"), /*#__PURE__*/React.createElement("td", {
+    style: valueStyle
+  }, data.fatherHeight && data.motherHeight ? `父 ${data.fatherHeight} / 母 ${data.motherHeight} cm` : dash), /*#__PURE__*/React.createElement("td", {
+    style: labelStyle
+  }, "預估遺傳身高"), /*#__PURE__*/React.createElement("td", {
+    style: {
+      ...valueStyle,
+      fontWeight: 700,
+      color: "#2D5A3F"
+    }
+  }, target ? `${target} cm （±8 cm）` : dash)), /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    style: labelStyle
+  }, "主訴"), /*#__PURE__*/React.createElement("td", {
+    colSpan: 3,
+    style: {
+      ...valueStyle,
+      fontWeight: 600
+    }
+  }, arrayOrDash(data.visitReason, data.visitReasonOther))), /*#__PURE__*/React.createElement("tr", null, /*#__PURE__*/React.createElement("td", {
+    style: labelStyle
+  }, "家長最在意"), /*#__PURE__*/React.createElement("td", {
+    colSpan: 3,
+    style: valueStyle
+  }, v(data.mainConcern)))))), hasRedFlag && /*#__PURE__*/React.createElement("div", {
+    className: "pdf-avoid-break",
+    style: {
+      background: "#FDF2EC",
+      border: "1.5px solid #C97B4A",
+      borderRadius: "6px",
+      padding: "10px 14px",
+      marginBottom: "10px"
+    }
+  }, /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "9pt",
+      color: "#C97B4A",
+      letterSpacing: "2px",
+      marginBottom: "4px",
+      fontWeight: 700
+    }
+  }, "⚑ RED FLAGS · 紅旗症狀"), /*#__PURE__*/React.createElement("div", {
+    style: {
+      fontSize: "11pt",
+      color: "#1F2520",
+      fontWeight: 600
+    }
+  }, rfList.join("、"))), /*#__PURE__*/React.createElement(SectionTitle, {
+    num: "01",
+    title: "基本資料"
+  }), /*#__PURE__*/React.createElement(Table, {
+    rows: [["出生年月日", v(data.birthDate)], ["就讀學校 / 年級", `${v(data.school)} ${v(data.grade)}`], ["家長聯絡電話", v(data.parentPhone)]]
+  }), /*#__PURE__*/React.createElement(SectionTitle, {
+    num: "02",
+    title: "看診原因"
+  }), /*#__PURE__*/React.createElement(Table, {
+    rows: [["主要原因", arrayOrDash(data.visitReason, data.visitReasonOther)], ["問題持續時間", v(data.problemDuration)], ["班上身高排名", v(data.classRanking)], ["最近一年長高", v(data.growthLastYear)]]
+  }), /*#__PURE__*/React.createElement(SectionTitle, {
+    num: "03",
+    title: "出生史"
+  }), /*#__PURE__*/React.createElement(Table, {
+    rows: [["胎次 / 週數", `${v(data.pregnancyOrder)} / ${v(data.gestationalWeeks)}`], ["出生體重", data.birthWeight ? `${data.birthWeight} g` : dash], ["生產方式", data.deliveryMethod === "剖腹產" ? `剖腹產（${v(data.cesareanReason)}）` : v(data.deliveryMethod)], ["出生時狀況", arrayOrDash(data.birthComplications, data.birthComplicationOther)]]
+  }), /*#__PURE__*/React.createElement(SectionTitle, {
+    num: "04",
+    title: "家族史"
+  }), /*#__PURE__*/React.createElement(Table, {
+    rows: [["父親身高 / 母親身高", data.fatherHeight && data.motherHeight ? `${data.fatherHeight} / ${data.motherHeight} cm` : dash], ["父親發育時期", v(data.fatherPubertyTime)], ["母親初經年齡", v(data.motherMenarche)], ["兄弟姊妹發育", v(data.siblingsInfo)], ["家族疾病", arrayOrDash(data.familyDiseases, data.familyDiseaseOther)]]
+  }), /*#__PURE__*/React.createElement(SectionTitle, {
+    num: "05",
+    title: "目前生長狀況"
+  }), /*#__PURE__*/React.createElement(Table, {
+    rows: [["身高 / 體重", data.currentHeight && data.currentWeight ? `${data.currentHeight} cm / ${data.currentWeight} kg` : dash], ["BMI", v(bmi)], ["測量日期", v(data.measureDate)]]
+  }), /*#__PURE__*/React.createElement(SectionTitle, {
+    num: "06",
+    title: "青春期發育"
+  }), data.gender === "female" && /*#__PURE__*/React.createElement(Table, {
+    rows: [["胸部發育", data.breastDev === "已有" ? `已有（${v(data.breastAge)} 開始）` : v(data.breastDev)], ["陰毛 / 腋毛", v(data.pubicHair)], ["初經", data.menarcheStatus === "已有" ? `已有（${v(data.menarcheAge)}）` : v(data.menarcheStatus)], ["體味變重", v(data.bodyOdor)], ["青春痘", v(data.acne)], ["近半年抽高", v(data.recentSpurt)]]
+  }), data.gender === "male" && /*#__PURE__*/React.createElement(Table, {
+    rows: [["變聲", v(data.voiceChange)], ["睪丸變大", v(data.testesChange)], ["陰毛 / 腋毛", v(data.pubicHair)], ["長鬍鬚", v(data.beard)], ["體味變重", v(data.bodyOdor)], ["青春痘", v(data.acne)], ["近半年抽高", v(data.recentSpurt)]]
+  }), !data.gender && /*#__PURE__*/React.createElement("div", {
+    style: {
+      color: "#8A8473",
+      fontSize: "10pt",
+      marginBottom: "8px"
+    }
+  }, "（性別未填，無法評估）"), /*#__PURE__*/React.createElement(SectionTitle, {
+    num: "07",
+    title: "生活作息"
+  }), /*#__PURE__*/React.createElement(Table, {
+    rows: [["平日睡眠", `${v(data.weekdayBedtime)} – ${v(data.weekdayWake)}`], ["假日上床時間", v(data.weekendBedtime)], ["睡眠狀況", arrayOrDash(data.sleepIssues)], ["運動頻率 / 種類", `${v(data.exerciseFreq)}；${v(data.exerciseTypes)}`], ["3C 螢幕時間", v(data.screenTime)]]
+  }), /*#__PURE__*/React.createElement(SectionTitle, {
+    num: "08",
+    title: "飲食習慣"
+  }), /*#__PURE__*/React.createElement(Table, {
+    rows: [["食量 / 偏食", `${v(data.appetite)}；${data.pickyEating === "是" ? `偏食：${v(data.pickyDetails)}` : "無偏食"}`], ["每日奶量 / 早餐", `${data.dairyIntake ? data.dairyIntake + " ml" : dash}；${data.breakfast === "是" ? "天天吃早餐" : data.breakfast === "否" ? "未天天吃" : dash}`], ["保健食品 / 補品", arrayOrDash(data.supplements, data.supplementOther)]]
+  }), /*#__PURE__*/React.createElement(SectionTitle, {
+    num: "09",
+    title: "病史與用藥"
+  }), /*#__PURE__*/React.createElement(Table, {
+    rows: [["藥物過敏", data.drugAllergy === "有" ? `有：${v(data.drugAllergyDetails)}` : v(data.drugAllergy)], ["慢性 / 重大疾病", data.chronicDisease === "有" ? `有：${v(data.chronicDetails)}` : v(data.chronicDisease)], ["腦部疾病 / 外傷", data.brainDisease === "有" ? `有：${v(data.brainDiseaseDetails)}` : v(data.brainDisease)], ["長期用藥", v(data.longTermMeds)]]
+  }), /*#__PURE__*/React.createElement(SectionTitle, {
+    num: "10",
+    title: "過去評估與家長期望"
+  }), /*#__PURE__*/React.createElement(Table, {
+    rows: [["過去就醫評估", data.prevEvaluation === "是" ? `有：${v(data.prevDetails)}` : v(data.prevEvaluation)], ["目前治療", v(data.currentTreatment)], ["最希望解決的問題", v(data.mainConcern)], ["身高期望", v(data.heightGoal)], ["治療接受度", v(data.treatmentAcceptance)]]
+  }), /*#__PURE__*/React.createElement("div", {
+    style: {
+      marginTop: "18px",
+      paddingTop: "8px",
+      borderTop: "1px solid #E2DCC8",
+      fontSize: "8.5pt",
+      color: "#8A8473",
+      display: "flex",
+      justifyContent: "space-between"
+    }
+  }, /*#__PURE__*/React.createElement("div", null, "本問卷由家長於診前線上填寫，僅供醫師診療參考。"), /*#__PURE__*/React.createElement("div", null, "陪你長大小兒科診所 · childcareclinic.com.tw")));
+});
+PrintableSummary.displayName = "PrintableSummary";
+
+/* ===== 掛載 ===== */
+ReactDOM.createRoot(document.getElementById("root")).render(React.createElement(GrowthClinicForm));
+  </script>
+</body>
+</html>
